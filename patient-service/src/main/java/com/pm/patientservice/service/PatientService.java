@@ -22,12 +22,14 @@ public class PatientService {
         this.patientRepository = patientRepository;
     }
 
+    //get patient records
     public List<PatientResponseDTO> getPatients(){
         List<Patient> patients = patientRepository.findAll();
         List<PatientResponseDTO> patientResponses = patients.stream().map(patient -> PatientMapper.toDTO(patient)).toList();
         return patientResponses;
     }
 
+    //create patient record
     public PatientResponseDTO createPatient(PatientRequestDTO patientRequestDTO){
         if(patientRepository.existsByEmail(patientRequestDTO.getEmail())){
             throw new EmailAlreadyExistsException("A patient with this email already exists" + patientRequestDTO.getEmail());
@@ -36,15 +38,27 @@ public class PatientService {
         return PatientMapper.toDTO(newPatient);
     }
 
+    //update patient record
     public PatientResponseDTO updatePatient(UUID id, PatientRequestDTO patientRequestDTO){
+
+        //validation - while updating patient we shouldnot allow duplicate email with different id
+        if(patientRepository.existsByEmailAndIdNot(patientRequestDTO.getEmail(), id)){
+            throw new EmailAlreadyExistsException("A patient with this email already exists" + patientRequestDTO.getEmail());
+        }
        Patient patient = patientRepository.findById(id).orElseThrow(() -> new PatientNotFoundException("Patient not found with ID: " +
                id));
+
        patient.setName(patientRequestDTO.getName());
        patient.setEmail(patientRequestDTO.getEmail());
        patient.setAddress(patientRequestDTO.getAddress());
        patient.setDateOfBirth(LocalDate.parse(patientRequestDTO.getDateOfBirth()));
        Patient updatePatient = patientRepository.save(patient);
        return PatientMapper.toDTO(updatePatient);
+    }
+
+    //delete patient record
+    public void deletePatient(UUID id){
+        patientRepository.deleteById(id);
     }
 
 }
